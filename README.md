@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Debt Cycles Dashboard
+
+A web-based dashboard for tracking and visualizing key economic metrics from Ray Dalio's "Principles for Navigating Big Debt Crises". This application displays interactive charts for metrics related to both deflationary and inflationary debt cycles, focusing on U.S. data from the 1900s onward.
+
+## Features
+
+- **Interactive Metrics Dashboard**: View and explore key economic indicators for deflationary and inflationary debt cycles
+- **Detailed Metric Analysis**: Click on any metric to see detailed historical data and relevant statistics
+- **Educational Content**: Learn about debt cycles and their impact on economic indicators
+- **Responsive Design**: Works on mobile, tablet, and desktop devices
+- **Dark/Light Mode**: Automatically adjusts to your system preferences
+
+## Tech Stack
+
+- **Frontend**: Next.js with React and TypeScript
+- **Styling**: Tailwind CSS
+- **Charts**: Chart.js with react-chartjs-2
+- **Icons**: Heroicons
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js (v18.0.0 or later)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/debt-cycles.git
+cd debt-cycles
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+# or
+yarn install
+```
+
+3. Run the development server:
 
 ```bash
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `app/`: Application source code (Next.js App Router)
+  - `components/`: React components
+    - `charts/`: Chart components
+    - `ui/`: UI components (cards, modals, etc.)
+  - `data/`: Data sources and mock data generators
+  - `types/`: TypeScript type definitions
+  - `about/`: About page
+- `public/`: Static assets
+- `tailwind.config.ts`: Tailwind CSS configuration
 
-## Learn More
+## Data Sources
 
-To learn more about Next.js, take a look at the following resources:
+The data displayed in this dashboard is generated using algorithms that simulate historical patterns based on actual economic trends. In a production environment, this would be replaced with real data from:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Federal Reserve Economic Data (FRED)
+- Bureau of Economic Analysis (BEA)
+- Bureau of Labor Statistics (BLS)
+- International Monetary Fund (IMF)
+- Bank for International Settlements (BIS)
+- S&P Dow Jones Indices
+- Case-Shiller Home Price Index
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Acknowledgements
 
-## Deploy on Vercel
+This project is inspired by Ray Dalio's book "Principles for Navigating Big Debt Crises". It is intended for educational purposes only and is not affiliated with Bridgewater Associates or Ray Dalio.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
