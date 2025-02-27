@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Model for storing FRED Series information
+model FredSeries {
+  id        String   @id // FRED series ID (e.g., "GDPC1")
+  metricId  String   // Our internal metric ID (e.g., "gdp-growth-def")
+  name      String   // Human-readable name
+  description String // Description of the data series
+  unit      String   // Unit of measurement (%, $, etc.)
+  frequency String   // Data frequency (e.g., "Quarterly", "Monthly")
+  lastUpdated DateTime @updatedAt // When this record was last updated
+  
+  // Relationship to the cached data points
+  dataPoints CachedFredData[]
+
+  @@index([metricId]) // Index for faster lookup by metric ID
+}
+
+// Model for storing the actual data points from FRED API
+model CachedFredData {
+  id        Int      @id @default(autoincrement())
+  seriesId  String   // FRED series ID this data belongs to
+  date      DateTime // The date of this data point
+  value     Float    // The numerical value
+  
+  // Relationship to the FRED series
+  series    FredSeries @relation(fields: [seriesId], references: [id])
+
+  // Composite index for faster queries based on series and date
+  @@unique([seriesId, date])
+  @@index([date])
+}
+
+// Model for tracking when each series was last fetched from the API
+model LastFetchTimestamp {
+  seriesId  String   @id // FRED series ID
+  lastFetchedAt DateTime // When the data was last fetched from the API
+  
+  // This helps with determining when to refresh data
+  // Typically, economic data gets updated monthly or quarterly
+  @@index([lastFetchedAt])
+}

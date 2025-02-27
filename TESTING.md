@@ -1,72 +1,97 @@
-# Testing Documentation for Debt Cycles Dashboard
+# Testing Guide
 
-This document outlines the testing approach for the Debt Cycles Dashboard application.
+This document provides information about the testing setup for the Debt Cycles Dashboard.
 
-## Testing Structure
+## Test Overview
 
-The test suite is organized as follows:
+The application includes several types of tests:
 
-- **Unit Tests**: Test individual functions and components in isolation
-- **Integration Tests**: Test interactions between components and services
-- **API Service Tests**: Specifically test the FRED API integration
-
-## Test Files
-
-The tests are organized in the following directories:
-
-- `app/__tests__/components/`: Tests for React components
-- `app/__tests__/hooks/`: Tests for custom React hooks
-- `app/__tests__/services/`: Tests for API and data services
-- `app/__tests__/mocks/`: Mock setup and handlers for API testing
+- Unit tests for individual components and functions
+- Integration tests for services like the FRED API and database
+- Mock implementations for external dependencies
 
 ## Running Tests
 
-To run the tests, use the following npm commands:
+### All Tests
 
 ```bash
-# Run all tests
 npm test
+```
 
-# Run tests in watch mode (re-runs when files change)
+### Watch Mode (for development)
+
+```bash
 npm run test:watch
+```
 
-# Run tests with coverage report
+### Coverage Report
+
+```bash
 npm run test:coverage
 ```
 
-## Test Coverage
+### Database-Specific Tests
 
-The test suite covers:
+```bash
+./scripts/test-database.sh
+```
 
-1. **API Services**:
+## Test Structure
 
-   - Fetching data from FRED API
-   - Processing data for different metric types
-   - Error handling and fallbacks
+Tests are organized in the following directories:
 
-2. **Custom Hooks**:
+- `app/__tests__/components/` - Component tests
+- `app/__tests__/hooks/` - React hook tests
+- `app/__tests__/services/` - API service tests
+- `app/__tests__/database/` - Database service tests
+- `app/__tests__/integration/` - Integration tests
+- `app/__tests__/mocks/` - Mock implementations and helpers
 
-   - `useMetricData`: Fetching and processing data for individual metrics
-   - `useCategoryMetrics`: Fetching data for categories of metrics
+## Mock Implementations
 
-3. **UI Components**:
-   - `MetricCard`: Display of metric summary information
-   - `MetricDetailModal`: Detailed view of metrics with real-time data integration
-   - Loading and error states
+The test suite uses several mock implementations:
 
-## Adding New Tests
+### Prisma Client
 
-When adding new features to the application, follow these guidelines for testing:
+The Prisma client is mocked in `jest.setup.js` to avoid actual database connections during tests. It provides mock implementations for all the database operations used in the application.
 
-1. Create unit tests for any new utility functions
-2. Add component tests for UI components
-3. Test error handling and edge cases
-4. Mock external dependencies
+### FRED API
 
-## Troubleshooting
+API calls to the FRED service are mocked using:
 
-If tests are failing, check for:
+- Mock Service Worker (MSW) for HTTP request interception
+- Mock responses in `app/__tests__/mocks/fredApiResponses.ts`
 
-1. API key configuration in `.env.local`
-2. Mock implementations in `app/__tests__/mocks/handlers.ts`
-3. Dependency issues - run `npm install` to ensure all dependencies are installed
+### React Components
+
+UI components are tested using:
+
+- React Testing Library for component rendering and interactions
+- Jest DOM matchers for assertions
+
+## Database Testing
+
+The database tests verify that:
+
+1. Data can be cached correctly
+2. The system properly determines when to refresh data
+3. Cached data is returned when available
+4. API calls are made only when necessary
+
+## Writing New Tests
+
+When writing new tests:
+
+1. Place tests in the appropriate directory based on what you're testing
+2. Follow the naming convention: `*.test.ts` or `*.test.tsx`
+3. Use existing mocks or create new ones as needed
+4. Keep tests focused on a single responsibility
+
+## Troubleshooting Tests
+
+If tests are failing:
+
+1. Check that environment variables are properly mocked
+2. Verify mock implementations match the current code structure
+3. Look for timing issues with asynchronous operations
+4. Ensure the test environment is properly set up in `jest.setup.js`

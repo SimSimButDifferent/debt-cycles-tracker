@@ -29,6 +29,34 @@ jest.mock("next/navigation", () => ({
   usePathname: () => "",
 }));
 
+// Mock Prisma client
+jest.mock("./app/database/prisma", () => {
+  return {
+    prisma: {
+      fredSeries: {
+        findUnique: jest.fn(),
+        upsert: jest.fn(),
+        findFirst: jest.fn(),
+        create: jest.fn(),
+        findMany: jest.fn(),
+      },
+      cachedFredData: {
+        findMany: jest.fn(),
+        deleteMany: jest.fn(),
+        create: jest.fn(),
+        count: jest.fn(),
+      },
+      lastFetchTimestamp: {
+        findUnique: jest.fn(),
+        upsert: jest.fn(),
+      },
+      $transaction: jest.fn((callback) => Promise.resolve(callback({}))),
+      $connect: jest.fn(() => Promise.resolve()),
+      $disconnect: jest.fn(() => Promise.resolve()),
+    },
+  };
+});
+
 // Mock environment variables
 process.env.NEXT_PUBLIC_FRED_API_KEY = "mock-api-key";
 

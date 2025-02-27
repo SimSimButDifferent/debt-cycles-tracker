@@ -15,9 +15,13 @@ module.exports = {
     "<rootDir>/app/__tests__/test-utils.tsx",
     "<rootDir>/app/__tests__/test-environment.js",
     "<rootDir>/app/__tests__/jest.d.ts",
+    "<rootDir>/babel.config.test.js",
   ],
   transform: {
-    "^.+\\.(js|jsx|ts|tsx)$": ["babel-jest", { presets: ["next/babel"] }],
+    "^.+\\.(js|jsx|ts|tsx)$": [
+      "babel-jest",
+      { configFile: "./babel.config.test.js" },
+    ],
   },
   transformIgnorePatterns: [
     "/node_modules/",

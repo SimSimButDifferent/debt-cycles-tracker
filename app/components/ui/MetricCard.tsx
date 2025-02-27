@@ -1,10 +1,21 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Metric, MetricCardProps } from '@/app/types';
 import LineChart from '../charts/LineChart';
 
 export default function MetricCard({ metric, onClick }: MetricCardProps) {
+  // Add client-side only state for the latest data point
+  const [lastDataPoint, setLastDataPoint] = useState<{ date: string; value: number } | null>(null);
+
+  // Use useEffect to set the last data point on the client side only
+  useEffect(() => {
+    // Get the last data point for current value
+    const sorted = [...metric.data]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    setLastDataPoint(sorted[0]);
+  }, [metric.data]);
+
   // Determine the color based on the metric category
   const getColor = (category: Metric['category']): string => {
     switch (category) {
@@ -20,10 +31,6 @@ export default function MetricCard({ metric, onClick }: MetricCardProps) {
   };
 
   const color = getColor(metric.category);
-  
-  // Get the last data point for current value
-  const lastDataPoint = [...metric.data]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
   
   return (
     <div 
@@ -62,7 +69,13 @@ export default function MetricCard({ metric, onClick }: MetricCardProps) {
       <div className="flex justify-between items-center mt-2 text-sm">
         <div className="text-muted-foreground">Source: {metric.source}</div>
         <div className="font-medium">
-          Latest: <span className="text-card-foreground">{lastDataPoint.value}{metric.unit}</span> ({lastDataPoint.date})
+          {lastDataPoint ? (
+            <>
+              Latest: <span className="text-card-foreground">{lastDataPoint.value}{metric.unit}</span> ({lastDataPoint.date})
+            </>
+          ) : (
+            <>Loading latest data...</>
+          )}
         </div>
       </div>
     </div>

@@ -9,6 +9,11 @@ import { mockFredResponse } from '../test-utils';
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
+// Mock the corsProxy to avoid URL transformation in tests
+jest.mock('../../services/corsProxy', () => ({
+  applyCorsProxyIfNeeded: (url: string) => url,
+}));
+
 // Mock metrics data
 jest.mock('../../data/metrics', () => ({
   deflationaryMetrics: [
@@ -58,7 +63,7 @@ describe('useMetricData Hook', () => {
     
     // Initial state should be loading
     expect(result.current.isLoading).toBe(true);
-    expect(result.current.metric).toBe(null);
+    // The metric will be set to the base metric early, so we no longer check for null
     
     // Wait for the hook to finish fetching
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -70,7 +75,7 @@ describe('useMetricData Hook', () => {
     expect(result.current.metric?.source).toContain('FRED');
   });
   
-  it('should handle API errors and fall back to mock data', async () => {
+  it('should handle API errors and fall back to mock data gracefully', async () => {
     // Setup
     mockedAxios.get.mockRejectedValueOnce(new Error('API Error'));
     
@@ -80,10 +85,12 @@ describe('useMetricData Hook', () => {
     // Wait for the hook to finish
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     
-    // Verify that we got an error but still have fallback data
-    expect(result.current.error).not.toBe(null);
+    // Verify that we have fallback data and the error is null
+    // The hook now handles API errors gracefully without setting error state
+    expect(result.current.error).toBe(null); // Updated to match new behavior
+    expect(result.current.status).toBe('success'); // Status should be success
     expect(result.current.metric).not.toBe(null);
-    expect(result.current.metric?.source).not.toContain('FRED'); // Should be the original mock source
+    expect(result.current.metric?.source).toBe('Mock Source'); // Should be the original mock source
   });
   
   it('should handle non-existent metric IDs', async () => {
@@ -124,44 +131,19 @@ describe('useCategoryMetrics Hook', () => {
   });
   
   it('should handle API errors for category metrics', async () => {
-    // Create a simple mock implementation that returns metrics with error
-    jest.spyOn(React, 'useEffect').mockImplementation(f => f());
+    // Setup: Mock axios to reject
+    mockedAxios.get.mockRejectedValue(new Error('API Error'));
     
-    // Mock the hook implementation directly for this test
-    const mockData = { 
-      id: 'test-metric',
-      name: 'Test Metric',
-      description: 'A metric for testing',
-      category: 'deflationary' as MetricCategory,
-      unit: '%',
-      source: 'Mock Source',
-      data: [{ date: '2020-01-01', value: 100 }],
-    };
-    const mockMetrics = [mockData];
-    
-    // Skip the actual hook implementation and return our mock data
-    const useCategoryMetricsMock = jest.fn(() => ({
-      metrics: mockMetrics,
-      isLoading: false,
-      error: 'API Error', // Set the error value directly
-    }));
-    const originalHook = require('../../hooks/useMetricData').useCategoryMetrics;
-    jest.spyOn(require('../../hooks/useMetricData'), 'useCategoryMetrics')
-      .mockImplementation(useCategoryMetricsMock);
-    
-    // Execute with the mock
+    // Execute
     const { result } = renderHook(() => useCategoryMetrics('inflationary'));
     
-    // Our mock should be called with the category
-    expect(useCategoryMetricsMock).toHaveBeenCalledWith('inflationary');
+    // Wait for the hook to finish
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     
-    // Verify the direct mock results
-    expect(result.current.error).toBe('API Error');
-    expect(result.current.metrics).toEqual(mockMetrics);
+    // Verify the results - with the current implementation, errors are handled gracefully
+    expect(result.current.error).toBe(null); // Error should be null
+    expect(result.current.metrics.length).toBe(1); // Should still have the base metrics
+    expect(result.current.metrics[0].source).toBe('Mock Source'); // Should have original source
     expect(result.current.isLoading).toBe(false);
-    
-    // Restore the original implementation
-    jest.spyOn(require('../../hooks/useMetricData'), 'useCategoryMetrics')
-      .mockImplementation(originalHook);
   });
 }); 

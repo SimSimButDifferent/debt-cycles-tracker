@@ -1,5 +1,22 @@
 export type MetricCategory = 'deflationary' | 'inflationary' | 'both';
 
+export enum MetricType {
+  DEFLATIONARY = 'deflationary',
+  INFLATIONARY = 'inflationary',
+  BOTH = 'both'
+}
+
+export enum MetricGroup {
+  ECONOMIC_GROWTH = 'economic-growth',
+  INFLATION = 'inflation',
+  LABOR_MARKET = 'labor-market',
+  CREDIT = 'credit',
+  INTEREST_RATES = 'interest-rates',
+  ASSET_PRICES = 'asset-prices',
+  MONETARY_POLICY = 'monetary-policy',
+  FISCAL_POLICY = 'fiscal-policy'
+}
+
 export interface DataPoint {
   date: string;
   value: number;
