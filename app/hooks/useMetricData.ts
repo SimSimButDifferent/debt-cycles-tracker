@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Metric, MetricCategory } from '../types';
+import { Metric, MetricCategory } from '../types/metrics';
 import { deflationaryMetrics, inflationaryMetrics } from '../data/metrics';
 import { 
   fetchFredData, 
@@ -9,6 +9,7 @@ import {
   FRED_SERIES_MAP 
 } from '../services/fredApiClient';
 import { FredDataPoint, MetricTimeframe } from '../types/metrics';
+import { fetchMetrics } from '../services/metricService';
 
 type FetchStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -168,55 +169,23 @@ export function useCategoryMetrics(category: 'deflationary' | 'inflationary' | '
       setError(null);
 
       try {
-        // Get base metrics for this category
-        const baseMetrics = getMetricsByCategory(category);
+        // Fetch all metrics from our updated metricService
+        const allMetrics = await fetchMetrics();
         
-        // Immediately set the base metrics to ensure we have something to show
-        setMetrics(baseMetrics);
+        // Filter metrics by category
+        const filteredMetrics = allMetrics.filter(metric => {
+          if (category === 'both') {
+            return true; // Return all metrics
+          }
+          // Convert the category to string for comparison
+          return metric.category === category.toString();
+        });
         
-        // Try to enhance with real data from FRED API where possible
-        const enhancedMetrics = await Promise.all(
-          baseMetrics.map(async (metric) => {
-            // Check if this metric has a FRED series mapping
-            const fredSeriesId = FRED_SERIES_MAP[metric.id];
-            if (!fredSeriesId) return metric;
-            
-            try {
-              // Fetch real data from FRED API - if this fails, just return the original metric
-              const fredData = await fetchFredData(fredSeriesId).catch(() => []);
-              
-              if (fredData && fredData.length > 0) {
-                // Process the data based on metric type
-                const processedData = processFredData(fredData, metric.id);
-                
-                // Return enhanced metric with real data
-                return {
-                  ...metric,
-                  data: processedData,
-                  source: `Federal Reserve Economic Data (FRED) - ${fredSeriesId}`,
-                };
-              }
-              
-              // If no data, just return the original metric
-              return metric;
-            } catch (apiError) {
-              // If API call fails, just return the original metric
-              console.warn(`Error enhancing metric ${metric.id} with FRED data:`, apiError);
-              return metric;
-            }
-          })
-        );
-        
-        // Update with any successfully enhanced metrics
-        setMetrics(enhancedMetrics);
+        setMetrics(filteredMetrics);
         setIsLoading(false);
       } catch (err) {
         console.error('Error fetching category metrics:', err);
         setError(err instanceof Error ? err.message : 'Unknown error occurred');
-        
-        // Ensure we still have the base metrics even if there was an error
-        const baseMetrics = getMetricsByCategory(category);
-        setMetrics(baseMetrics);
         setIsLoading(false);
       }
     };

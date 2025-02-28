@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Metric, MetricCategory } from '../types/metrics';
+import { Metric } from '../types/metrics';
 import { fetchMetrics } from '../services/metricService';
 
 export interface UseCategoryMetricsResult {
@@ -11,7 +11,7 @@ export interface UseCategoryMetricsResult {
 /**
  * Hook to fetch metrics filtered by category
  */
-export function useCategoryMetrics(category?: MetricCategory): UseCategoryMetricsResult {
+export function useCategoryMetrics(category: 'deflationary' | 'inflationary' | 'both'): UseCategoryMetricsResult {
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,10 +24,11 @@ export function useCategoryMetrics(category?: MetricCategory): UseCategoryMetric
       try {
         const allMetrics = await fetchMetrics();
         
-        // Filter by category if specified
-        const filteredMetrics = category 
-          ? allMetrics.filter(m => m.category === category)
-          : allMetrics;
+        // Filter by category
+        let filteredMetrics = allMetrics;
+        if (category !== 'both') {
+          filteredMetrics = allMetrics.filter(m => m.category === category);
+        }
         
         setMetrics(filteredMetrics);
       } catch (err) {

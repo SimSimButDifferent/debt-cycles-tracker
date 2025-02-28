@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/ui/Header';
 import Footer from './components/ui/Footer';
 import MetricCard from './components/ui/MetricCard';
@@ -8,7 +8,7 @@ import MetricDetailModal from './components/ui/MetricDetailModal';
 import Tabs from './components/ui/Tabs';
 import { TabPanel } from './components/ui/Tabs';
 import { Metric } from './types/metrics';
-import { useCategoryMetrics } from './hooks/useMetricData';
+import { fetchMetrics } from './services/metricService';
 import MetricsLoading from './components/ui/MetricsLoading';
 import MetricsError from './components/ui/MetricsError';
 
@@ -16,10 +16,37 @@ export default function Home() {
   const [selectedMetric, setSelectedMetric] = useState<Metric | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   
-  // Fetch different categories of metrics
-  const deflationary = useCategoryMetrics('deflationary');
-  const inflationary = useCategoryMetrics('inflationary');
-  const both = useCategoryMetrics('both');
+  // State for metrics data
+  const [allMetrics, setAllMetrics] = useState<Metric[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Fetch metrics on component mount
+  useEffect(() => {
+    const loadMetrics = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const metrics = await fetchMetrics();
+        setAllMetrics(metrics);
+      } catch (err) {
+        console.error('Error loading metrics:', err);
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadMetrics();
+  }, []);
+  
+  // Filter metrics by category
+  const economicMetrics = allMetrics.filter(m => m.category === 'economic');
+  const financialMetrics = allMetrics.filter(m => m.category === 'financial');
+  const monetaryMetrics = allMetrics.filter(m => m.category === 'monetary');
+  const debtMetrics = allMetrics.filter(m => m.category === 'debt');
+  const consumerMetrics = allMetrics.filter(m => m.category === 'consumer');
   
   // Handle metric click to show details
   const handleMetricClick = (metric: Metric) => {
@@ -33,7 +60,7 @@ export default function Home() {
   };
   
   // Helper function to render the metrics grid
-  const renderMetricsGrid = (metrics: Metric[], isLoading: boolean, error: string | null) => {
+  const renderMetricsGrid = (metrics: Metric[]) => {
     if (isLoading) {
       return <MetricsLoading />;
     }
@@ -70,20 +97,35 @@ export default function Home() {
             defaultTab="all" 
             tabs={[
               { id: 'all', label: 'All Metrics' },
-              { id: 'deflationary', label: 'Deflationary Indicators' },
-              { id: 'inflationary', label: 'Inflationary Indicators' }
+              { id: 'economic', label: 'Economic Indicators' },
+              { id: 'financial', label: 'Financial Indicators' },
+              { id: 'monetary', label: 'Monetary Indicators' },
+              { id: 'debt', label: 'Debt Indicators' },
+              { id: 'consumer', label: 'Consumer Indicators' }
             ]}
           >
             <TabPanel id="all">
-              {renderMetricsGrid(both.metrics, both.isLoading, both.error)}
+              {renderMetricsGrid(allMetrics)}
             </TabPanel>
             
-            <TabPanel id="deflationary">
-              {renderMetricsGrid(deflationary.metrics, deflationary.isLoading, deflationary.error)}
+            <TabPanel id="economic">
+              {renderMetricsGrid(economicMetrics)}
             </TabPanel>
             
-            <TabPanel id="inflationary">
-              {renderMetricsGrid(inflationary.metrics, inflationary.isLoading, inflationary.error)}
+            <TabPanel id="financial">
+              {renderMetricsGrid(financialMetrics)}
+            </TabPanel>
+            
+            <TabPanel id="monetary">
+              {renderMetricsGrid(monetaryMetrics)}
+            </TabPanel>
+            
+            <TabPanel id="debt">
+              {renderMetricsGrid(debtMetrics)}
+            </TabPanel>
+            
+            <TabPanel id="consumer">
+              {renderMetricsGrid(consumerMetrics)}
             </TabPanel>
           </Tabs>
         </section>
