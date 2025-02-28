@@ -7,6 +7,10 @@ import "./app/__tests__/mocks/chartjs";
 // Setup MSW for API mocking
 import { server } from "./app/__tests__/mocks/server";
 
+// Setup fetch mock
+import fetchMock from "jest-fetch-mock";
+fetchMock.enableMocks();
+
 // Establish API mocking before all tests
 beforeAll(() => server.listen());
 

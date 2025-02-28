@@ -1,16 +1,28 @@
 'use client';
 
 import React, { useState, ReactElement } from 'react';
-import { TabsProps } from '@/app/types';
 
-// Define the type for TabPanel props
-interface TabPanelProps {
-  children: React.ReactNode;
-  value: string;
+// Define the type for tab items
+export interface TabItem {
+  id: string;
+  label: string;
 }
 
-export default function Tabs({ defaultValue, tabs, children }: TabsProps) {
-  const [activeTab, setActiveTab] = useState(defaultValue);
+// Define the type for Tabs props
+export interface TabsProps {
+  defaultTab: string;
+  tabs: TabItem[];
+  children: React.ReactNode;
+}
+
+// Define the type for TabPanel props
+export interface TabPanelProps {
+  children: React.ReactNode;
+  id: string;
+}
+
+export default function Tabs({ defaultTab, tabs, children }: TabsProps) {
+  const [activeTab, setActiveTab] = useState(defaultTab);
   
   return (
     <div>
@@ -18,10 +30,10 @@ export default function Tabs({ defaultValue, tabs, children }: TabsProps) {
         <div className="flex space-x-2 overflow-x-auto pb-0.5">
           {tabs.map((tab) => (
             <button
-              key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap
-                ${activeTab === tab.value
+                ${activeTab === tab.id
                   ? 'bg-background text-foreground border-b-2 border-primary'
                   : 'text-muted-foreground hover:text-foreground'
                 }`}
@@ -34,10 +46,10 @@ export default function Tabs({ defaultValue, tabs, children }: TabsProps) {
       
       <div className="tab-content">
         {React.Children.map(children, (child) => {
-          // Safely check if child is a valid React element and has the value prop matching the active tab
+          // Safely check if child is a valid React element and has the id prop matching the active tab
           if (
             React.isValidElement<TabPanelProps>(child) && 
-            child.props.value === activeTab
+            child.props.id === activeTab
           ) {
             return child;
           }
@@ -48,12 +60,9 @@ export default function Tabs({ defaultValue, tabs, children }: TabsProps) {
   );
 }
 
-export function TabPanel({ 
-  children, 
-  value 
-}: TabPanelProps) {
+export function TabPanel({ children, id }: TabPanelProps) {
   return (
-    <div role="tabpanel" id={`tabpanel-${value}`}>
+    <div className="tab-panel">
       {children}
     </div>
   );

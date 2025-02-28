@@ -21,6 +21,17 @@
   --input: #e2e8f0;
   --deflationary: #0ea5e9;
   --inflationary: #ef4444;
+
+  /* New category colors */
+  --economic: #16a34a;
+  --financial: #2563eb;
+  --monetary: #9333ea;
+  --debt: #dc2626;
+  --orange: #f97316;
+  --green: #16a34a;
+  --blue: #2563eb;
+  --purple: #9333ea;
+  --red: #dc2626;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -43,6 +54,17 @@
     --input: #334155;
     --deflationary: #0ea5e9;
     --inflationary: #f87171;
+
+    /* New category colors - dark mode */
+    --economic: #4ade80;
+    --financial: #60a5fa;
+    --monetary: #c084fc;
+    --debt: #f87171;
+    --orange: #fb923c;
+    --green: #4ade80;
+    --blue: #60a5fa;
+    --purple: #c084fc;
+    --red: #f87171;
   }
 }
 

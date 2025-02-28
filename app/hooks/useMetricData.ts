@@ -3,7 +3,12 @@
 import { useState, useEffect } from 'react';
 import { Metric, MetricCategory } from '../types';
 import { deflationaryMetrics, inflationaryMetrics } from '../data/metrics';
-import { fetchFredData, processFredData, FRED_SERIES_MAP } from '../services/fredApi';
+import { 
+  fetchFredData, 
+  calculateAnnualPercentageChange,
+  FRED_SERIES_MAP 
+} from '../services/fredApiClient';
+import { FredDataPoint, MetricTimeframe } from '../types/metrics';
 
 type FetchStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -43,89 +48,106 @@ function generateFallbackData(metric: Metric): Metric {
   return { ...metric };
 }
 
+export interface UseMetricDataResult {
+  data: FredDataPoint[];
+  isLoading: boolean;
+  error: string | null;
+  percentChange: FredDataPoint[];
+}
+
 /**
- * Custom hook to fetch real data for a specific metric
- * Falls back to mock data if real data fetch fails
+ * Hook to fetch and manage FRED data for a specific metric series
  */
-export function useMetricData(metricId: string): UseMetricDataReturnType {
-  const [metric, setMetric] = useState<Metric | null>(null);
-  const [status, setStatus] = useState<FetchStatus>('idle');
+export function useMetricData(seriesId: string, timeframe: MetricTimeframe = 'all'): UseMetricDataResult {
+  const [data, setData] = useState<FredDataPoint[]>([]);
+  const [percentChange, setPercentChange] = useState<FredDataPoint[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!metricId) return;
+    // Skip if no seriesId is provided
+    if (!seriesId) {
+      setIsLoading(false);
+      return;
+    }
 
+    let isMounted = true;
+    
     const fetchData = async () => {
-      setStatus('loading');
       setIsLoading(true);
       setError(null);
-
+      
       try {
-        // First get the base metric data
-        const baseMetric = getMetricById(metricId);
+        const result = await fetchFredData(seriesId);
         
-        if (!baseMetric) {
-          throw new Error(`Metric with ID '${metricId}' not found`);
-        }
-
-        // Set the base metric first to ensure we have something to show
-        setMetric(baseMetric);
+        // Filter based on timeframe
+        let filteredData = filterDataByTimeframe(result, timeframe);
         
-        // Only try to fetch real API data if we have a FRED series mapping
-        const fredSeriesId = FRED_SERIES_MAP[metricId];
-        if (fredSeriesId) {
-          try {
-            // Fetch real data from FRED API
-            const fredData = await fetchFredData(fredSeriesId);
-            
-            if (fredData && fredData.length > 0) {
-              // Process the data based on metric type
-              const processedData = processFredData(fredData, metricId);
-              
-              // Create updated metric with real data
-              const updatedMetric: Metric = {
-                ...baseMetric,
-                data: processedData,
-                source: `Federal Reserve Economic Data (FRED) - ${fredSeriesId}`,
-              };
-              
-              setMetric(updatedMetric);
-              setStatus('success');
-            } else {
-              // If no data returned but no error, just use the base metric
-              console.warn(`No data returned from FRED for ${metricId}`);
-              setStatus('success');
-            }
-          } catch (apiError) {
-            // Log the API error but don't fail the hook - we still have the base data
-            console.warn(`Error fetching FRED data for ${metricId}:`, apiError);
-            // We already set the baseMetric earlier, so we're good
-            setStatus('success');
-          }
-        } else {
-          // No FRED mapping, just use the base metric
-          setStatus('success');
+        // Calculate percentage change
+        const changeData = calculateAnnualPercentageChange(result);
+        let filteredChangeData = filterDataByTimeframe(changeData, timeframe);
+        
+        if (isMounted) {
+          setData(filteredData);
+          setPercentChange(filteredChangeData);
+          setError(null);
         }
       } catch (err) {
-        console.error('Error fetching metric data:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error occurred');
-        setStatus('error');
-        
-        // Try to set a fallback metric if possible
-        const baseMetric = getMetricById(metricId);
-        if (baseMetric) {
-          setMetric(generateFallbackData(baseMetric));
+        console.error(`Error fetching data for ${seriesId}:`, err);
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : String(err));
+          setData([]);
+          setPercentChange([]);
         }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchData();
-  }, [metricId]);
 
-  return { metric, status, error, isLoading };
+    return () => {
+      isMounted = false;
+    };
+  }, [seriesId, timeframe]);
+
+  return { data, isLoading, error, percentChange };
+}
+
+/**
+ * Filter data based on the selected timeframe
+ */
+function filterDataByTimeframe(data: FredDataPoint[], timeframe: MetricTimeframe): FredDataPoint[] {
+  if (!data.length || timeframe === 'all') {
+    return data;
+  }
+
+  const now = new Date();
+  let cutoffDate = new Date();
+
+  switch (timeframe) {
+    case '1y':
+      cutoffDate.setFullYear(now.getFullYear() - 1);
+      break;
+    case '5y':
+      cutoffDate.setFullYear(now.getFullYear() - 5);
+      break;
+    case '10y':
+      cutoffDate.setFullYear(now.getFullYear() - 10);
+      break;
+    case '20y':
+      cutoffDate.setFullYear(now.getFullYear() - 20);
+      break;
+    default:
+      return data;
+  }
+
+  return data.filter(point => {
+    const pointDate = new Date(point.date);
+    return pointDate >= cutoffDate;
+  });
 }
 
 /**

@@ -1,7 +1,7 @@
 import React, { ReactElement } from 'react';
 import '@testing-library/jest-dom';
 import { render, RenderOptions } from '@testing-library/react';
-import { Metric, MetricCategory } from '../types';
+import { Metric, MetricCategory, TrendStatus } from '../types/metrics';
 
 // Sample data for tests
 export const mockDataPoint = {
@@ -11,11 +11,14 @@ export const mockDataPoint = {
 
 export const mockMetric: Metric = {
   id: 'test-metric',
-  name: 'Test Metric',
+  title: 'Test Metric',
   description: 'A metric for testing',
-  category: 'deflationary' as MetricCategory,
+  category: 'economic' as MetricCategory,
   unit: '%',
   source: 'Mock Data',
+  isPercentage: true,
+  trendStatus: 'positive' as TrendStatus,
+  frequency: 'monthly',
   data: [
     { date: '2020-01-01', value: 80 },
     { date: '2020-02-01', value: 85 },

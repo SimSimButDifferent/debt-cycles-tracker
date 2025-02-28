@@ -1,4 +1,5 @@
-export type MetricCategory = 'deflationary' | 'inflationary' | 'both';
+export type MetricCategory = 'deflationary' | 'inflationary' | 'both' | 'monetary' | 'financial' | 'economic' | 'debt' | 'consumer';
+export type TrendStatus = 'positive' | 'negative' | 'warning' | 'neutral';
 
 export enum MetricType {
   DEFLATIONARY = 'deflationary',
@@ -25,11 +26,16 @@ export interface DataPoint {
 export interface Metric {
   id: string;
   name: string;
+  title: string;
   description: string;
   category: MetricCategory;
   unit: string;
   source: string;
   data: DataPoint[];
+  isPercentage?: boolean;
+  trendStatus?: TrendStatus;
+  frequency?: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annual';
+  trendDescription?: string;
 }
 
 export interface ChartProps {
@@ -37,6 +43,7 @@ export interface ChartProps {
   title: string;
   unit: string;
   color?: string;
+  minimal?: boolean;
 }
 
 export interface MetricCardProps {

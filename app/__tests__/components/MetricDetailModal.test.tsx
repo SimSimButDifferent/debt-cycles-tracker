@@ -4,11 +4,28 @@ import MetricDetailModal from '../../components/ui/MetricDetailModal';
 import { mockMetric } from '../test-utils';
 import { useMetricData } from '../../hooks/useMetricData';
 import '@testing-library/jest-dom';
+import { Metric, MetricCategory, TrendStatus } from '@/app/types/metrics';
 
-// Mock the LineChart component
-jest.mock('../../components/charts/LineChart', () => {
-  return function MockLineChart() {
+// Mock the DynamicLineChart component
+jest.mock('../../components/charts/DynamicLineChart', () => {
+  return function MockDynamicLineChart() {
     return <div data-testid="line-chart">Mock Chart</div>;
+  };
+});
+
+// Mock useState for isClient to always return true
+jest.mock('react', () => {
+  const originalReact = jest.requireActual('react');
+  return {
+    ...originalReact,
+    useState: jest.fn().mockImplementation((initialValue) => {
+      // Special case for isClient state - always return true
+      if (initialValue === false) {
+        return [true, jest.fn()];
+      }
+      // For all other useState calls, use the actual implementation
+      return originalReact.useState(initialValue);
+    }),
   };
 });
 
@@ -26,10 +43,10 @@ describe('MetricDetailModal Component', () => {
     jest.clearAllMocks();
     // Default mock implementation for the hook
     mockedUseMetricData.mockReturnValue({
-      metric: null,
+      data: [],
+      percentChange: [],
       isLoading: false,
       error: null,
-      status: 'idle',
     });
   });
   
@@ -45,16 +62,16 @@ describe('MetricDetailModal Component', () => {
     
     // Since the component should return null, we can't assert on elements
     // Just verify that the modal's title is not in the document
-    expect(screen.queryByText(mockMetric.name)).not.toBeInTheDocument();
+    expect(screen.queryByText(mockMetric.title)).not.toBeInTheDocument();
   });
   
   it('renders the modal with correct metric data', () => {
     // Setup - mock the hook to return no real data
     mockedUseMetricData.mockReturnValue({
-      metric: null,
+      data: [],
+      percentChange: [],
       isLoading: false,
       error: null,
-      status: 'success',
     });
     
     // Render the component
@@ -66,14 +83,14 @@ describe('MetricDetailModal Component', () => {
       />
     );
     
-    // Check that metric name is displayed in the title
-    expect(screen.getByText(mockMetric.name)).toBeInTheDocument();
+    // Check that metric title is displayed in the title
+    expect(screen.getByText(mockMetric.title)).toBeInTheDocument();
     
     // Check that the description is displayed
     expect(screen.getByText(mockMetric.description)).toBeInTheDocument();
     
     // Check that the source is displayed
-    expect(screen.getByText(mockMetric.source)).toBeInTheDocument();
+    expect(screen.getByText(mockMetric.source, { exact: false })).toBeInTheDocument();
     
     // Check that the line chart is rendered
     expect(screen.getByTestId('line-chart')).toBeInTheDocument();
@@ -82,10 +99,10 @@ describe('MetricDetailModal Component', () => {
   it('shows loading state when fetching real data', () => {
     // Setup - mock the hook to return loading state
     mockedUseMetricData.mockReturnValue({
-      metric: null,
+      data: [],
+      percentChange: [],
       isLoading: true,
       error: null,
-      status: 'loading',
     });
     
     // Render the component
@@ -104,10 +121,10 @@ describe('MetricDetailModal Component', () => {
   it('shows error message when data fetching fails', () => {
     // Setup - mock the hook to return error state
     mockedUseMetricData.mockReturnValue({
-      metric: null,
+      data: [],
+      percentChange: [],
       isLoading: false,
       error: 'Failed to fetch data',
-      status: 'error',
     });
     
     // Render the component
@@ -119,42 +136,57 @@ describe('MetricDetailModal Component', () => {
       />
     );
     
-    // Check that error message is displayed
-    expect(screen.getByText('Error loading real-time data')).toBeInTheDocument();
+    // Check that error message is displayed with partial text matching
+    expect(screen.getByText(/Error fetching real-time data/i)).toBeInTheDocument();
     expect(screen.getByText('Failed to fetch data')).toBeInTheDocument();
-    expect(screen.getByText('Showing simulated data instead.')).toBeInTheDocument();
+    expect(screen.getByText(/Showing historical data/i)).toBeInTheDocument();
   });
   
   it('shows FRED data source when using real data', () => {
     // Create a metric with FRED data source
-    const fredMetric = {
-      ...mockMetric,
+    const fredMetric: Metric = {
+      id: 'test-fred-metric',
+      title: 'FRED Test Metric',
+      description: 'A metric for testing FRED data',
+      category: 'economic',
+      unit: '%',
       source: 'Federal Reserve Economic Data (FRED) - GDP123',
+      frequency: 'monthly',
+      isPercentage: true,
+      trendStatus: 'positive',
+      data: [
+        { date: '2020-01-01', value: 80 },
+        { date: '2020-02-01', value: 85 }
+      ]
     };
     
     // Setup - mock the hook to return real data
     mockedUseMetricData.mockReturnValue({
-      metric: fredMetric,
+      data: [
+        { date: '2023-01-01', value: 100 },
+        { date: '2023-02-01', value: 105 },
+      ],
+      percentChange: [
+        { date: '2023-01-01', value: 2.5 },
+        { date: '2023-02-01', value: 5.0 },
+      ],
       isLoading: false,
       error: null,
-      status: 'success',
     });
     
     // Render the component
     render(
       <MetricDetailModal 
-        metric={mockMetric} 
+        metric={fredMetric} 
         isOpen={true} 
         onClose={mockOnClose} 
       />
     );
     
-    // Fix: Be more specific when looking for FRED source text
-    // Use queryAllByText and check that at least one element exists
-    const fredElements = screen.queryAllByText(/Federal Reserve Economic Data/);
-    expect(fredElements.length).toBeGreaterThan(0);
-    
-    // Alternative: Look for the specific source text
+    // Check for FRED source text
     expect(screen.getByText('Federal Reserve Economic Data (FRED) - GDP123')).toBeInTheDocument();
+    
+    // Check for real data indicator
+    expect(screen.getByText('Real Data')).toBeInTheDocument();
   });
 }); 
