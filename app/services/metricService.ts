@@ -1,4 +1,4 @@
-import { Metric } from '../types/metrics';
+import { Metric, FredDataPoint } from '../types/metrics';
 import { fetchFredData, FRED_SERIES_MAP, FRED_SERIES_INFO } from './fredApi';
 import { getCachedFredData } from '../database/fredDataService';
 
@@ -119,6 +119,112 @@ const METRIC_TO_FRED_MAP: Record<string, string> = {
 };
 
 /**
+ * Generate example data for a metric when real data can't be loaded
+ */
+function generateExampleData(metric: Metric): FredDataPoint[] {
+  const currentYear = new Date().getFullYear();
+  const startYear = currentYear - 10; // 10 years of data
+  const data: FredDataPoint[] = [];
+  
+  // Generate different patterns based on the metric
+  let minValue = 0;
+  let maxValue = 100;
+  let pattern: 'up' | 'down' | 'cycle' | 'random' = 'random';
+  
+  switch (metric.id) {
+    case 'gdp':
+      minValue = 17; // Trillion dollars
+      maxValue = 25;
+      pattern = 'up';
+      break;
+    case 'unemployment':
+      minValue = 3; // Percentage
+      maxValue = 15;
+      pattern = 'cycle';
+      break;
+    case 'inflation':
+      minValue = 0;
+      maxValue = 9;
+      pattern = 'cycle';
+      break;
+    case 'federalFunds':
+      minValue = 0;
+      maxValue = 5;
+      pattern = 'cycle';
+      break;
+    case 'debtToGDP':
+      minValue = 60;
+      maxValue = 130;
+      pattern = 'up';
+      break;
+    case 'yieldCurve':
+      minValue = -2;
+      maxValue = 3;
+      pattern = 'cycle';
+      break;
+    case 'housingIndex':
+      minValue = 100;
+      maxValue = 250;
+      pattern = 'up';
+      break;
+    case 'consumerSentiment':
+      minValue = 50;
+      maxValue = 110;
+      pattern = 'cycle';
+      break;
+    default:
+      minValue = 0;
+      maxValue = 100;
+      pattern = 'random';
+  }
+  
+  // Generate the data points
+  for (let year = startYear; year <= currentYear; year++) {
+    // Generate quarterly or monthly data depending on frequency
+    const intervals = metric.frequency === 'quarterly' ? 4 : 12;
+    
+    for (let i = 0; i < intervals; i++) {
+      const progress = (year - startYear + i / intervals) / (currentYear - startYear + 1);
+      let value: number;
+      
+      switch (pattern) {
+        case 'up':
+          // Upward trend with some randomness
+          value = minValue + (maxValue - minValue) * progress + Math.random() * 5 - 2.5;
+          break;
+        case 'cycle':
+          // Cyclical pattern (sine wave)
+          value = ((maxValue - minValue) / 2) + ((maxValue - minValue) / 2) * 
+                Math.sin(progress * Math.PI * 4) + (Math.random() * 3 - 1.5);
+          break;
+        case 'random':
+        default:
+          // Random values within range
+          value = minValue + Math.random() * (maxValue - minValue);
+      }
+      
+      // Ensure value stays within bounds and round to 2 decimal places
+      value = Math.max(minValue, Math.min(maxValue, value));
+      value = Math.round(value * 100) / 100;
+      
+      // Format the date
+      let date: string;
+      if (metric.frequency === 'quarterly') {
+        const quarter = i + 1;
+        date = `${year}-${quarter.toString().padStart(2, '0')}-01`;
+      } else {
+        const month = i + 1;
+        date = `${year}-${month.toString().padStart(2, '0')}-01`;
+      }
+      
+      data.push({ date, value });
+    }
+  }
+  
+  return data;
+}
+
+/**
  * Fetch all available metrics with real data
  */
 export async function fetchMetrics(): Promise<Metric[]> {
@@ -133,7 +239,12 @@ export async function fetchMetrics(): Promise<Metric[]> {
         const seriesId = METRIC_TO_FRED_MAP[metric.id];
         if (!seriesId) {
           console.warn(`No FRED series mapping for metric ${metric.id}`);
-          return metric;
+          // Generate example data as fallback
+          return {
+            ...metric,
+            data: generateExampleData(metric),
+            source: 'Example Data (No FRED mapping available)'
+          };
         }
         
         try {
@@ -160,11 +271,21 @@ export async function fetchMetrics(): Promise<Metric[]> {
             };
           }
           
-          // If we couldn't get data, return the metric with empty data
-          return metric;
+          // If we couldn't get data, use example data
+          console.log(`No data available for ${metric.id}, using example data`);
+          return {
+            ...metric,
+            data: generateExampleData(metric),
+            source: 'Example Data (FRED API data unavailable)'
+          };
         } catch (error) {
           console.error(`Error fetching data for metric ${metric.id}:`, error);
-          return metric;
+          // Use example data on error
+          return {
+            ...metric,
+            data: generateExampleData(metric),
+            source: 'Example Data (Error fetching FRED data)'
+          };
         }
       })
     );
@@ -172,8 +293,12 @@ export async function fetchMetrics(): Promise<Metric[]> {
     return metricsWithData;
   } catch (error) {
     console.error('Error in fetchMetrics:', error);
-    // Return the base metrics without real data as a fallback
-    return METRIC_DEFINITIONS;
+    // Generate example data for all metrics as fallback
+    return METRIC_DEFINITIONS.map(metric => ({
+      ...metric,
+      data: generateExampleData(metric),
+      source: 'Example Data (Error in fetchMetrics)'
+    }));
   }
 }
 
@@ -191,7 +316,12 @@ export async function fetchMetricById(id: string): Promise<Metric | null> {
     const seriesId = METRIC_TO_FRED_MAP[id];
     if (!seriesId) {
       console.warn(`No FRED series mapping for metric ${id}`);
-      return metricDefinition;
+      // Generate example data as fallback
+      return {
+        ...metricDefinition,
+        data: generateExampleData(metricDefinition),
+        source: 'Example Data (No FRED mapping available)'
+      };
     }
     
     // First check if we have data in the database
@@ -217,11 +347,25 @@ export async function fetchMetricById(id: string): Promise<Metric | null> {
       };
     }
     
-    // If we couldn't get data, return the base metric
-    return metricDefinition;
+    // If we couldn't get data, use example data
+    console.log(`No data available for ${id}, using example data`);
+    return {
+      ...metricDefinition,
+      data: generateExampleData(metricDefinition),
+      source: 'Example Data (FRED API data unavailable)'
+    };
   } catch (error) {
     console.error(`Error fetching metric ${id}:`, error);
-    // Return the base metric as a fallback
-    return METRIC_DEFINITIONS.find(m => m.id === id) || null;
+    // Use example data on error
+    const metricDefinition = METRIC_DEFINITIONS.find(m => m.id === id);
+    if (!metricDefinition) {
+      return null;
+    }
+    
+    return {
+      ...metricDefinition,
+      data: generateExampleData(metricDefinition),
+      source: 'Example Data (Error fetching FRED data)'
+    };
   }
 } 

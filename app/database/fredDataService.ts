@@ -7,6 +7,9 @@ import { PrismaClient, Prisma } from '@prisma/client';
 // FRED data is typically updated monthly, some series quarterly
 const DATA_FRESHNESS_DAYS = 7; // Consider data fresh for a week
 
+// Helper to check if we're running on the client side
+const isClient = typeof window !== 'undefined';
+
 /**
  * Get cached data for a FRED series if available and fresh
  * @param seriesId FRED series ID
@@ -14,6 +17,12 @@ const DATA_FRESHNESS_DAYS = 7; // Consider data fresh for a week
  */
 export async function getCachedFredData(seriesId: string): Promise<DataPoint[] | null> {
   try {
+    // If we're on the client side or prisma is not available, return null
+    if (isClient || !prisma) {
+      console.log('Running in browser or prisma unavailable, skipping database check');
+      return null;
+    }
+    
     // Check when data was last fetched
     const lastFetch = await prisma.lastFetchTimestamp.findUnique({
       where: { seriesId }
@@ -77,6 +86,12 @@ export async function cacheFredData(
   if (!data.length) return;
   
   try {
+    // If we're on the client side or prisma is not available, just log and return
+    if (isClient || !prisma) {
+      console.log('Running in browser or prisma unavailable, skipping database cache');
+      return;
+    }
+    
     // Use a transaction to ensure data consistency
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Upsert the FRED series info
@@ -146,6 +161,11 @@ export async function getFredSeriesForMetric(metricId: string): Promise<string |
     const seriesId = FRED_SERIES_MAP[metricId];
     if (seriesId) return seriesId;
     
+    // If we're on the client side or prisma is not available, return null
+    if (isClient || !prisma) {
+      return null;
+    }
+    
     // If not found in the map, check the database
     const series = await prisma.fredSeries.findFirst({
       where: { metricId }
@@ -165,6 +185,11 @@ export async function getFredSeriesForMetric(metricId: string): Promise<string |
  */
 export async function shouldFetchFromApi(seriesId: string): Promise<boolean> {
   try {
+    // If we're on the client side or prisma is not available, always fetch from API
+    if (isClient || !prisma) {
+      return true;
+    }
+    
     const lastFetch = await prisma.lastFetchTimestamp.findUnique({
       where: { seriesId }
     });
