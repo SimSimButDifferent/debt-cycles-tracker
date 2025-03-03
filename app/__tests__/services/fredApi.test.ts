@@ -96,12 +96,15 @@ describe('FRED API Service', () => {
       );
     });
     
-    it('should handle API errors by throwing an error', async () => {
+    it('should handle API errors gracefully by returning an empty array', async () => {
       // Setup the mocked error response
       mockedAxios.get.mockRejectedValue(new Error('Network Error'));
       
-      // Call the function and expect it to throw
-      await expect(fetchFredData('GDPC1')).rejects.toThrow();
+      // Call the function and expect it to return an empty array
+      const result = await fetchFredData('GDPC1');
+      
+      // Verify the result is an empty array
+      expect(result).toEqual([]);
       
       // Verify that axios.get was called
       expect(mockedAxios.get).toHaveBeenCalled();

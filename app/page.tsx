@@ -7,7 +7,7 @@ import MetricCard from './components/ui/MetricCard';
 import MetricDetailModal from './components/ui/MetricDetailModal';
 import Tabs from './components/ui/Tabs';
 import { TabPanel } from './components/ui/Tabs';
-import { Metric } from './types/metrics';
+import { Metric, MetricTimeframe } from './types/metrics';
 import { fetchMetrics } from './services/metricService';
 import MetricsLoading from './components/ui/MetricsLoading';
 import MetricsError from './components/ui/MetricsError';
@@ -15,6 +15,7 @@ import MetricsError from './components/ui/MetricsError';
 export default function Home() {
   const [selectedMetric, setSelectedMetric] = useState<Metric | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [globalTimeframe, setGlobalTimeframe] = useState<MetricTimeframe>('all');
   
   // State for metrics data
   const [allMetrics, setAllMetrics] = useState<Metric[]>([]);
@@ -76,6 +77,7 @@ export default function Home() {
             key={metric.id}
             metric={metric}
             onClick={handleMetricClick}
+            timeframe={globalTimeframe}
           />
         ))}
       </div>
@@ -92,6 +94,37 @@ export default function Home() {
           <p className="text-lg text-muted-foreground mb-8">
             Tracking key economic metrics from Ray Dalio's Principles for Navigating Big Debt Crises
           </p>
+          
+          {/* Global timeframe controls */}
+          <div className="flex items-center justify-end mb-4">
+            <div className="text-sm mr-2">Timeframe:</div>
+            <div className="flex space-x-2 text-xs">
+              <button 
+                className={`px-2 py-1 rounded ${globalTimeframe === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                onClick={() => setGlobalTimeframe('all')}
+              >
+                All
+              </button>
+              <button 
+                className={`px-2 py-1 rounded ${globalTimeframe === '10y' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                onClick={() => setGlobalTimeframe('10y')}
+              >
+                10Y
+              </button>
+              <button 
+                className={`px-2 py-1 rounded ${globalTimeframe === '5y' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                onClick={() => setGlobalTimeframe('5y')}
+              >
+                5Y
+              </button>
+              <button 
+                className={`px-2 py-1 rounded ${globalTimeframe === '1y' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                onClick={() => setGlobalTimeframe('1y')}
+              >
+                1Y
+              </button>
+            </div>
+          </div>
           
           <Tabs 
             defaultTab="all" 

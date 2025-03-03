@@ -1,16 +1,16 @@
 // Create a mock for the PrismaClient
 import { PrismaClient } from '@prisma/client';
+import { jest } from '@jest/globals';
 
-// Use Partial<PrismaClient> to allow for partial implementation
-const mockPrisma: Partial<PrismaClient> & {
-  $transaction: <T>(fn: (prisma: any) => Promise<T> | T) => Promise<T>;
-} = {
+// Create a mock for the isClient variable
+export const mockIsClient = false;
+
+// Mock implementation of the Prisma client
+export const mockPrisma = {
   // Mock fredSeries model
   fredSeries: {
     findUnique: jest.fn(),
     upsert: jest.fn(),
-    findFirst: jest.fn(),
-    create: jest.fn(),
     findMany: jest.fn(),
   },
   
@@ -19,7 +19,7 @@ const mockPrisma: Partial<PrismaClient> & {
     findMany: jest.fn(),
     deleteMany: jest.fn(),
     create: jest.fn(),
-    count: jest.fn(),
+    createMany: jest.fn(),
   },
   
   // Mock lastFetchTimestamp model
@@ -29,11 +29,16 @@ const mockPrisma: Partial<PrismaClient> & {
   },
   
   // Mock transaction
-  $transaction: jest.fn((callback) => Promise.resolve(callback(mockPrisma))),
+  $transaction: jest.fn((callback: any) => {
+    return callback(mockPrisma);
+  }),
   
   // Mock connect/disconnect
-  $connect: jest.fn(() => Promise.resolve()),
-  $disconnect: jest.fn(() => Promise.resolve()),
-};
+  $connect: jest.fn(),
+  $disconnect: jest.fn(),
+} as unknown as PrismaClient;
 
-export { mockPrisma }; 
+// Explicitly indicate this is not undefined
+const prisma = mockPrisma as unknown as PrismaClient;
+
+export { mockPrisma, prisma }; 

@@ -86,8 +86,8 @@ describe('MetricCard Component', () => {
     // Render the component
     render(<MetricCard metric={fredMetric} onClick={mockOnClick} />);
     
-    // Check that there's a FRED badge
-    expect(screen.getByText('Real Data')).toBeInTheDocument();
+    // Check that there's a FRED source text
+    expect(screen.getByText(/Federal Reserve Economic Data/)).toBeInTheDocument();
   });
   
   it('displays a chart with the metric data', () => {

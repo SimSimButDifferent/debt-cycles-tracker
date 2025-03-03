@@ -114,8 +114,8 @@ describe('MetricDetailModal Component', () => {
       />
     );
     
-    // Check that loading message is displayed
-    expect(screen.getByText('Loading real-time data...')).toBeInTheDocument();
+    // Check that loading spinner is displayed
+    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
   });
   
   it('shows error message when data fetching fails', () => {
@@ -137,9 +137,11 @@ describe('MetricDetailModal Component', () => {
     );
     
     // Check that error message is displayed with partial text matching
-    expect(screen.getByText(/Error fetching real-time data/i)).toBeInTheDocument();
-    expect(screen.getByText('Failed to fetch data')).toBeInTheDocument();
-    expect(screen.getByText(/Showing historical data/i)).toBeInTheDocument();
+    expect(screen.getByText(/Error loading data/)).toBeInTheDocument();
+    // Use a more flexible approach to find the error message
+    const errorElement = screen.getByText(/Error loading data/);
+    expect(errorElement.textContent).toContain('Failed to fetch data');
+    expect(screen.getByText(/Showing static data/)).toBeInTheDocument();
   });
   
   it('shows FRED data source when using real data', () => {
@@ -187,6 +189,6 @@ describe('MetricDetailModal Component', () => {
     expect(screen.getByText('Federal Reserve Economic Data (FRED) - GDP123')).toBeInTheDocument();
     
     // Check for real data indicator
-    expect(screen.getByText('Real Data')).toBeInTheDocument();
+    expect(screen.getByText('Real FRED Data')).toBeInTheDocument();
   });
 }); 

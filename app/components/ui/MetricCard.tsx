@@ -1,15 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Metric, MetricCategory } from '@/app/types/metrics';
+import { Metric, MetricCategory, MetricTimeframe } from '@/app/types/metrics';
 import DynamicLineChart from '../charts/DynamicLineChart';
 
 interface MetricCardProps {
   metric: Metric;
   onClick?: (metric: Metric) => void;
+  timeframe?: MetricTimeframe;
 }
 
-export default function MetricCard({ metric, onClick }: MetricCardProps) {
+export default function MetricCard({ metric, onClick, timeframe = 'all' }: MetricCardProps) {
   const [isClient, setIsClient] = useState(false);
   
   // Set isClient to true on component mount (client-side only)
@@ -24,10 +25,43 @@ export default function MetricCard({ metric, onClick }: MetricCardProps) {
       )[0] 
     : null;
     
-  // Only show the last 50 data points for the preview chart
-  const chartData = [...metric.data]
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(-50);
+  // Filter data based on the selected timeframe
+  const filterDataByTimeframe = (data: any[], timeframe: MetricTimeframe) => {
+    if (!data.length || timeframe === 'all') {
+      return data;
+    }
+
+    const now = new Date();
+    const cutoffDate = new Date();
+
+    switch (timeframe) {
+      case '1y':
+        cutoffDate.setFullYear(now.getFullYear() - 1);
+        break;
+      case '5y':
+        cutoffDate.setFullYear(now.getFullYear() - 5);
+        break;
+      case '10y':
+        cutoffDate.setFullYear(now.getFullYear() - 10);
+        break;
+      case '20y':
+        cutoffDate.setFullYear(now.getFullYear() - 20);
+        break;
+      default:
+        return data;
+    }
+
+    return data.filter(point => {
+      const pointDate = new Date(point.date);
+      return pointDate >= cutoffDate;
+    });
+  };
+  
+  // Filter and prepare chart data
+  const chartData = filterDataByTimeframe(
+    [...metric.data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    timeframe
+  );
   
   // Helper function to determine the color class based on metric category
   const getCategoryClass = () => {
@@ -109,26 +143,26 @@ export default function MetricCard({ metric, onClick }: MetricCardProps) {
             {formatValue(lastDataPoint.value)}
           </div>
         )}
-      </div>
-      
-      {/* Category badge */}
-      <div className="mt-2 mb-3">
-        <span className={`inline-block px-2 py-1 text-xs rounded-md ${getCategoryClass()}`}>
+        
+        {/* Category badge */}
+        <div className={`absolute top-3 right-3 inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getCategoryClass()}`}>
           {metric.category.charAt(0).toUpperCase() + metric.category.slice(1)}
-        </span>
+        </div>
       </div>
       
       {/* Description */}
-      <p className="text-xs text-gray-400 mb-4 line-clamp-2">{metric.description}</p>
+      <div className="mb-3 text-sm text-gray-400 line-clamp-3">
+        {metric.description || 'No description available.'}
+      </div>
       
       {/* Source */}
       <div className="text-xs text-gray-500 mb-4">
-        Source: {metric.source?.includes('FRED') ? 'Federal Reserve Economic Data (FRED)' : metric.source}
+        Source: {metric.source || 'Federal Reserve Economic Data (FRED)'}
       </div>
       
-      {/* Chart - only render on client side */}
-      {isClient && chartData.length > 0 && (
-        <div className="h-24 mt-auto">
+      {/* Chart */}
+      <div className="mt-auto flex-grow min-h-[100px]">
+        {isClient && chartData.length > 0 ? (
           <DynamicLineChart 
             data={chartData} 
             title={displayTitle}
@@ -136,8 +170,14 @@ export default function MetricCard({ metric, onClick }: MetricCardProps) {
             color={getChartColor()}
             minimal={true}
           />
-        </div>
-      )}
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-sm text-gray-500">
+              {chartData.length === 0 ? 'No data available' : 'Loading chart...'}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 } 

@@ -120,13 +120,13 @@ export function useMetricData(seriesId: string, timeframe: MetricTimeframe = 'al
 /**
  * Filter data based on the selected timeframe
  */
-function filterDataByTimeframe(data: FredDataPoint[], timeframe: MetricTimeframe): FredDataPoint[] {
+export function filterDataByTimeframe(data: FredDataPoint[], timeframe: MetricTimeframe): FredDataPoint[] {
   if (!data.length || timeframe === 'all') {
     return data;
   }
 
   const now = new Date();
-  let cutoffDate = new Date();
+  const cutoffDate = new Date();
 
   switch (timeframe) {
     case '1y':

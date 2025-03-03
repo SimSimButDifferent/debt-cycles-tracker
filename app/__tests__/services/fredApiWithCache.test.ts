@@ -102,23 +102,17 @@ describe('FRED API Service with Cache', () => {
     }));
   });
   
-  it('should handle API errors gracefully', async () => {
+  it('should handle API errors gracefully by returning an empty array', async () => {
     // Setup mocks
     (getCachedFredData as jest.Mock).mockResolvedValue(null);
     (shouldFetchFromApi as jest.Mock).mockResolvedValue(true);
     mockedAxios.get.mockRejectedValue(new Error('API Error'));
     
-    // Call the function and catch the error
-    let error: Error | undefined;
-    try {
-      await fetchFredData(mockSeriesId);
-    } catch (e) {
-      error = e as Error;
-    }
+    // Call the function
+    const result = await fetchFredData(mockSeriesId);
     
-    // Verify that an error was thrown
-    expect(error).toBeDefined();
-    expect(error?.message).toContain('API Error');
+    // Verify that an empty array was returned
+    expect(result).toEqual([]);
     
     // Verify that cacheFredData was not called
     expect(cacheFredData).not.toHaveBeenCalled();

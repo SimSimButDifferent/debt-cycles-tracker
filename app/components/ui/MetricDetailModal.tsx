@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import DynamicLineChart from '../charts/DynamicLineChart';
-import { Metric } from '@/app/types/metrics';
+import { Metric, MetricTimeframe } from '@/app/types/metrics';
 import { useMetricData } from '@/app/hooks/useMetricData';
 import { ChartBarIcon } from '@heroicons/react/24/outline';
 import { FRED_SERIES_MAP } from '@/app/services/fredApiClient';
@@ -18,13 +18,16 @@ export default function MetricDetailModal({ metric, isOpen, onClose }: MetricDet
   // Only render content if we have a metric and are open
   if (!metric || !isOpen) return null;
   
-  const [timeframe, setTimeframe] = useState<'all' | '1y' | '5y' | '10y' | '20y'>('all');
+  const [timeframe, setTimeframe] = useState<MetricTimeframe>('all');
   const [isClient, setIsClient] = useState(false);
   
   // Set isClient to true when component mounts on client
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    
+    // Reset timeframe when modal opens with a new metric
+    setTimeframe('all');
+  }, [metric.id]);
   
   // Get the FRED series ID for this metric
   const seriesId = FRED_SERIES_MAP[metric.id];
@@ -36,11 +39,56 @@ export default function MetricDetailModal({ metric, isOpen, onClose }: MetricDet
     error 
   } = useMetricData(seriesId, timeframe);
   
+  // Filter data based on the selected timeframe
+  const filterDataByTimeframe = (data: any[], timeframe: MetricTimeframe) => {
+    if (!data.length || timeframe === 'all') {
+      return data;
+    }
+
+    const now = new Date();
+    const cutoffDate = new Date();
+
+    switch (timeframe) {
+      case '1y':
+        cutoffDate.setFullYear(now.getFullYear() - 1);
+        break;
+      case '5y':
+        cutoffDate.setFullYear(now.getFullYear() - 5);
+        break;
+      case '10y':
+        cutoffDate.setFullYear(now.getFullYear() - 10);
+        break;
+      case '20y':
+        cutoffDate.setFullYear(now.getFullYear() - 20);
+        break;
+      default:
+        return data;
+    }
+
+    return data.filter(point => {
+      const pointDate = new Date(point.date);
+      return pointDate >= cutoffDate;
+    });
+  };
+  
   // Determine if we're showing real data
   const hasRealData = !isLoading && !error && data.length > 0;
   
-  // Determine the data to display based on availability
-  const displayData = hasRealData ? data : metric.data;
+  // Determine the data to display, and ensure it's filtered by timeframe
+  const displayData = hasRealData 
+    ? data  // Real data is already filtered by the useMetricData hook
+    : filterDataByTimeframe(metric.data, timeframe);  // Filter the fallback data
+  
+  // For debugging timeframe changes
+  useEffect(() => {
+    console.log(`Timeframe changed to: ${timeframe}, data length: ${displayData.length}`);
+  }, [timeframe, displayData.length]);
+  
+  // Helper function to update the timeframe
+  const handleTimeframeChange = (newTimeframe: MetricTimeframe) => {
+    console.log(`Setting timeframe to: ${newTimeframe}`);
+    setTimeframe(newTimeframe);
+  };
   
   // Helper function to get color based on category
   const getChartColor = () => {
@@ -125,32 +173,32 @@ export default function MetricDetailModal({ metric, isOpen, onClose }: MetricDet
         {/* Timeframe selector */}
         <div className="flex space-x-2 border-b border-gray-700 pb-4">
           <button
-            onClick={() => setTimeframe('all')}
-            className={`px-3 py-1.5 text-sm rounded-md ${timeframe === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'}`}
+            onClick={() => handleTimeframeChange('all')}
+            className={`px-3 py-1.5 text-sm rounded-md ${timeframe === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
           >
             All
           </button>
           <button
-            onClick={() => setTimeframe('20y')}
-            className={`px-3 py-1.5 text-sm rounded-md ${timeframe === '20y' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'}`}
+            onClick={() => handleTimeframeChange('20y')}
+            className={`px-3 py-1.5 text-sm rounded-md ${timeframe === '20y' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
           >
             20Y
           </button>
           <button
-            onClick={() => setTimeframe('10y')}
-            className={`px-3 py-1.5 text-sm rounded-md ${timeframe === '10y' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'}`}
+            onClick={() => handleTimeframeChange('10y')}
+            className={`px-3 py-1.5 text-sm rounded-md ${timeframe === '10y' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
           >
             10Y
           </button>
           <button
-            onClick={() => setTimeframe('5y')}
-            className={`px-3 py-1.5 text-sm rounded-md ${timeframe === '5y' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'}`}
+            onClick={() => handleTimeframeChange('5y')}
+            className={`px-3 py-1.5 text-sm rounded-md ${timeframe === '5y' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
           >
             5Y
           </button>
           <button
-            onClick={() => setTimeframe('1y')}
-            className={`px-3 py-1.5 text-sm rounded-md ${timeframe === '1y' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'}`}
+            onClick={() => handleTimeframeChange('1y')}
+            className={`px-3 py-1.5 text-sm rounded-md ${timeframe === '1y' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
           >
             1Y
           </button>

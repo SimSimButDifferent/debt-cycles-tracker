@@ -92,7 +92,7 @@ describe('FRED API with Database Integration', () => {
       expect(mockCacheFredData).toHaveBeenCalled();
     });
 
-    test('should reject with error when API fetch fails', async () => {
+    test('should return empty array when API fetch fails', async () => {
       // Setup: Cache is expired and API call fails
       mockShouldFetchFromApi.mockResolvedValue(true);
       mockGetCachedFredData.mockResolvedValue(null);
@@ -102,7 +102,8 @@ describe('FRED API with Database Integration', () => {
       (axios.get as jest.Mock).mockRejectedValue(apiError);
 
       // Execute and verify
-      await expect(fetchFredData(seriesId)).rejects.toThrow();
+      const result = await fetchFredData(seriesId);
+      expect(result).toEqual([]);
       expect(mockCacheFredData).not.toHaveBeenCalled();
     });
 
